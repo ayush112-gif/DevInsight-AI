@@ -128,7 +128,16 @@ const fetchGitHubRepository = async (
     );
 
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
+
+    console.log("===== GITHUB API ERROR =====");
+
+    if (axios.isAxiosError(error)) {
+      console.log("STATUS:", error.response?.status);
+      console.log("DATA:", JSON.stringify(error.response?.data));
+      console.log("MESSAGE:", error.message);
+    }
+
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       throw new AppError("Repository not found or not publicly accessible", 404);
     }
