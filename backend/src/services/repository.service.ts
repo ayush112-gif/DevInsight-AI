@@ -1,5 +1,6 @@
 import axios from "axios";
 import { calculateComplexityScore } from "./complexity-score.service";
+import { env } from "../config/env";
 
 import {
   generateAIAnalysis,
@@ -117,15 +118,17 @@ const fetchGitHubRepository = async (
   name: string,
 ): Promise<GitHubRepositoryResponse> => {
   try {
-    const response = await axios.get<GitHubRepositoryResponse>(
-      `https://api.github.com/repos/${owner}/${name}`,
-      {
-        headers: {
-          Accept: "application/vnd.github+json",
-          "User-Agent": "DevInsight-AI",
-        },
-      },
-    );
+    const response = await axios.get(
+  `https://api.github.com/repos/${owner}/${name}`,
+  {
+    headers: {
+      Accept: "application/vnd.github+json",
+      
+      Authorization: `Bearer ${env.githubToken}`,
+      "User-Agent": "DevInsight-AI",
+    },
+  }
+);
 
     return response.data;
   } catch (error: any) {
@@ -159,6 +162,7 @@ const fetchGitHubTree = async (
       {
         headers: {
           Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${env.githubToken}`,
           "User-Agent": "DevInsight-AI",
         },
       },
@@ -199,6 +203,7 @@ const fetchGitHubPackageManifest = async (
       {
         headers: {
           Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${env.githubToken}`,
           "User-Agent": "DevInsight-AI",
         },
         params: {
@@ -232,6 +237,7 @@ const fetchReadmeContent = async (
       {
         headers: {
           Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${env.githubToken}`,
           "User-Agent": "DevInsight-AI",
         },
         params: {

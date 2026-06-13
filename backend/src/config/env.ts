@@ -15,9 +15,10 @@ const parsePort = (value: string | undefined): number => {
 
   return port;
 };
-
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: parsePort(process.env.PORT),
   openRouterApiKey: process.env.OPENROUTER_API_KEY ?? "",
+  githubToken: process.env.GITHUB_TOKEN ?? "",
 };
+
