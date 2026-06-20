@@ -17,6 +17,11 @@ import { AppError } from "../utils/app-error";
 
 interface GitHubRepositoryResponse {
   default_branch: string;
+  description?: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  language?: string | null;
+  languages_url: string;
 }
 
 interface GitHubTreeItem {
@@ -118,21 +123,19 @@ const fetchGitHubRepository = async (
   name: string,
 ): Promise<GitHubRepositoryResponse> => {
   try {
-    const response = await axios.get(
-  `https://api.github.com/repos/${owner}/${name}`,
-  {
-    headers: {
-      Accept: "application/vnd.github+json",
-      
-      Authorization: `Bearer ${env.githubToken}`,
-      "User-Agent": "DevInsight-AI",
-    },
-  }
-);
+    const response = await axios.get<GitHubRepositoryResponse>(
+      `https://api.github.com/repos/${owner}/${name}`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${env.githubToken}`,
+          "User-Agent": "DevInsight-AI",
+        },
+      },
+    );
 
     return response.data;
   } catch (error: any) {
-
     console.log("===== GITHUB API ERROR =====");
 
     if (axios.isAxiosError(error)) {
@@ -146,6 +149,25 @@ const fetchGitHubRepository = async (
     }
 
     throw new AppError("Failed to fetch repository metadata", 502);
+  }
+};
+
+const fetchGitHubLanguages = async (
+  languagesUrl: string,
+): Promise<Record<string, number>> => {
+  try {
+    const response = await axios.get<Record<string, number>>(languagesUrl, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${env.githubToken}`,
+        "User-Agent": "DevInsight-AI",
+      },
+    });
+
+    return response.data ?? {};
+  } catch (error) {
+    console.warn("[GITHUB] Failed to fetch language statistics", error instanceof Error ? error.message : error);
+    return {};
   }
 };
 
@@ -285,9 +307,7 @@ export const analyzeRepositoryUrl = async (
     repository.default_branch,
   );
 
-  const files = tree.tree.filter(
-    (item) => item.type === "blob",
-  );
+  const files = tree.tree.filter((item) => item.type === "blob");
 
   const packageManifest = await fetchGitHubPackageManifest(
     owner,
@@ -302,11 +322,9 @@ export const analyzeRepositoryUrl = async (
     repository.default_branch,
   );
 
-  const detectedTechnologies = detectTechnologies(
-    files,
-    packageManifest,
-  );
+  const languageStats = await fetchGitHubLanguages(repository.languages_url);
 
+  const detectedTechnologies = detectTechnologies(files, packageManifest);
   const importantFiles = getImportantFiles(files);
 
   const complexity = calculateComplexityScore(
@@ -317,14 +335,21 @@ export const analyzeRepositoryUrl = async (
 
   console.log(`[REPO] Analyzing: ${owner}/${name}`);
   console.log(`[REPO] Files: ${files.length}, Technologies: ${detectedTechnologies.length}`);
-console.log("===== AI CALL START =====");
+  console.log("===== AI CALL START =====");
+
   const aiAnalysis = await generateAIAnalysis(
     name,
     detectedTechnologies,
     files.length,
     importantFiles,
     readmeContent,
+    repository.description ?? null,
+    repository.stargazers_count,
+    repository.forks_count,
+    repository.language ?? null,
+    languageStats,
   );
+
   console.log("===== AI CALL END =====");
 
   return {
